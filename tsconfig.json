@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Node 23",
+  "_version": "23.3.0",
+
+  "compilerOptions": {
+    "lib": ["es2024"],
+    "module": "node16",
+    "target": "es2024",
+
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node16"
+  },
+  "ts-node": {
+    "swc": true
+  }
+}
