@@ -1,0 +1,11 @@
+{
+  "name": "json-diff-checker",
+  "version": "0.0.0",
+  "description": "A simple project to compare JSON files from the command line.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Alex Howley",
+  "license": "MIT"
+}
