@@ -1,3 +1,6 @@
+import { readFileSync, statSync } from 'fs';
+import { exit } from 'process';
+
 type JsonPrimitive = number | string | boolean | null;
 type JsonNode = JsonPrimitive | JsonNode[] | { [key: string]: JsonNode };
 
@@ -14,6 +17,7 @@ const logDifference = (objectOne: JsonNode, objectTwo: JsonNode, pathToNode: str
 };
 
 const recursiveCompare = (objectOne: JsonNode, objectTwo: JsonNode, pathToNode: string = 'root'): boolean => {
+    console.log(pathToNode);
     const d = (message: string) => logDifference(objectOne, objectTwo, pathToNode, message);
 
     if (objectOne instanceof Array || objectTwo instanceof Array) {
@@ -65,6 +69,8 @@ const recursiveCompare = (objectOne: JsonNode, objectTwo: JsonNode, pathToNode: 
             d(`Objects don't match: ${objectOne} != ${objectTwo}`);
             return false;
         }
+
+        return true;
     }
 
     const objectOneProperties = Object.keys(objectOne as { [key: string]: JsonNode });
@@ -89,20 +95,52 @@ const recursiveCompare = (objectOne: JsonNode, objectTwo: JsonNode, pathToNode: 
     return true;
 };
 
-const basicMatch = recursiveCompare({ a: 1, b: 1 }, { a: 1, b: 1 });
-console.log(`Basic matches show as identical: ${basicMatch}\n\n`);
+const test = () => {
+    const basicMatch = recursiveCompare({ a: 1, b: 1 }, { a: 1, b: 1 });
+    console.log(`Basic matches show as identical: ${basicMatch}\n\n`);
 
-const nestedBasicMatch = recursiveCompare([{ a: 1, b: 1 }], [{ a: 1, b: 1 }]);
-console.log(`Nested basic matches show as identical: ${nestedBasicMatch}\n\n`);
+    const nestedBasicMatch = recursiveCompare([{ a: 1, b: 1 }], [{ a: 1, b: 1 }]);
+    console.log(`Nested basic matches show as identical: ${nestedBasicMatch}\n\n`);
 
-const basicMismatch = recursiveCompare({ a: 1, b: 1 }, { a: 1, b: 2 });
-console.log(`Basic mismatch show as mismatch: ${!basicMismatch}\n\n`);
+    const basicMismatch = recursiveCompare({ a: 1, b: 1 }, { a: 1, b: 2 });
+    console.log(`Basic mismatch show as mismatch: ${!basicMismatch}\n\n`);
 
-const basicTypeMismatch = recursiveCompare({ a: 1, b: 1 }, { a: '1', b: 1 });
-console.log(`Basic type mismatch show as mismatch: ${!basicTypeMismatch}\n\n`);
+    const basicTypeMismatch = recursiveCompare({ a: 1, b: 1 }, { a: '1', b: 1 });
+    console.log(`Basic type mismatch show as mismatch: ${!basicTypeMismatch}\n\n`);
 
-const nestedBasicMismatch = recursiveCompare([{ a: 1, b: 1 }], [{ a: 1, b: 2 }]);
-console.log(`Nested mismatch shows as mismatch: ${!nestedBasicMismatch}\n\n`);
+    const nestedBasicMismatch = recursiveCompare([{ a: 1, b: 1 }], [{ a: 1, b: 2 }]);
+    console.log(`Nested mismatch shows as mismatch: ${!nestedBasicMismatch}\n\n`);
 
-const nestingMismatch = recursiveCompare([{ a: 1, b: 1 }], [{ a: 1, b: [1] }]);
-console.log(`Nesting mismatch shows as mismatch: ${!nestingMismatch}\n\n`);
+    const nestingMismatch = recursiveCompare([{ a: 1, b: 1 }], [{ a: 1, b: [1] }]);
+    console.log(`Nesting mismatch shows as mismatch: ${!nestingMismatch}\n\n`);
+};
+
+if (process.argv.length === 4) {
+    const [_node, _scriptName, fileNameOne, fileNameTwo] = process.argv;
+    if ([fileNameOne, fileNameTwo].some((val) => !val.toLowerCase().endsWith('.json'))) {
+        console.error(`One of the following files appears to not be a JSON file: ${fileNameOne} | ${fileNameTwo}`);
+        exit(1);
+    }
+    const statsOne = statSync(fileNameOne);
+    const statsTwo = statSync(fileNameTwo);
+    if (!statsOne.isFile && !statsTwo.isFile) {
+        console.error(
+            `One or more of these file paths was not found or is not a file: ${fileNameOne} | ${fileNameTwo}`,
+        );
+    }
+
+    console.log(`Comparing files: ${fileNameOne} | ${fileNameTwo}`);
+    const objectOne = JSON.parse(readFileSync(fileNameOne, { encoding: 'utf8' }));
+    const objectTwo = JSON.parse(readFileSync(fileNameTwo, { encoding: 'utf8' }));
+    const matching = recursiveCompare(objectOne, objectTwo);
+
+    if (matching) {
+        console.log('These two JSON files are identical.');
+    } else {
+        console.log('One or more differences exists in these two JSON files.');
+    }
+} else {
+    console.log('Running test cases.\n\n');
+    test();
+    console.log('Test cases finished!');
+}
