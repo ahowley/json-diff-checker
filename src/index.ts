@@ -1,6 +1,8 @@
 import { readFileSync, statSync } from 'fs';
 import { exit } from 'process';
 
+let LOG = true;
+
 type JsonPrimitive = number | string | boolean | null;
 type JsonNode = JsonPrimitive | JsonNode[] | { [key: string]: JsonNode };
 
@@ -17,8 +19,7 @@ const logDifference = (objectOne: JsonNode, objectTwo: JsonNode, pathToNode: str
 };
 
 const recursiveCompare = (objectOne: JsonNode, objectTwo: JsonNode, pathToNode: string = 'root'): boolean => {
-    console.log(pathToNode);
-    const d = (message: string) => logDifference(objectOne, objectTwo, pathToNode, message);
+    const d = (message: string) => LOG && logDifference(objectOne, objectTwo, pathToNode, message);
 
     if (objectOne instanceof Array || objectTwo instanceof Array) {
         if (objectOne instanceof Array && !(objectTwo instanceof Array)) {
@@ -96,23 +97,26 @@ const recursiveCompare = (objectOne: JsonNode, objectTwo: JsonNode, pathToNode: 
 };
 
 const test = () => {
+    LOG = false;
     const basicMatch = recursiveCompare({ a: 1, b: 1 }, { a: 1, b: 1 });
-    console.log(`Basic matches show as identical: ${basicMatch}\n\n`);
+    console.assert(basicMatch, 'Test failed - basicMatch');
 
     const nestedBasicMatch = recursiveCompare([{ a: 1, b: 1 }], [{ a: 1, b: 1 }]);
-    console.log(`Nested basic matches show as identical: ${nestedBasicMatch}\n\n`);
+    console.assert(nestedBasicMatch, 'Test failed - nestedBasicMatch');
 
     const basicMismatch = recursiveCompare({ a: 1, b: 1 }, { a: 1, b: 2 });
-    console.log(`Basic mismatch show as mismatch: ${!basicMismatch}\n\n`);
+    console.assert(!basicMismatch, 'Test failed - basicMismatch');
 
     const basicTypeMismatch = recursiveCompare({ a: 1, b: 1 }, { a: '1', b: 1 });
-    console.log(`Basic type mismatch show as mismatch: ${!basicTypeMismatch}\n\n`);
+    console.assert(!basicTypeMismatch, 'Test failed - basicTypeMismatch');
 
     const nestedBasicMismatch = recursiveCompare([{ a: 1, b: 1 }], [{ a: 1, b: 2 }]);
-    console.log(`Nested mismatch shows as mismatch: ${!nestedBasicMismatch}\n\n`);
+    console.assert(!nestedBasicMismatch, 'Test failed - nestedBasicMismatch');
 
     const nestingMismatch = recursiveCompare([{ a: 1, b: 1 }], [{ a: 1, b: [1] }]);
-    console.log(`Nesting mismatch shows as mismatch: ${!nestingMismatch}\n\n`);
+    console.assert(!nestingMismatch, 'Test failed - nestingMismatch');
+
+    return [basicMatch, nestedBasicMatch, !basicMismatch, !basicTypeMismatch, !nestedBasicMismatch, !nestingMismatch];
 };
 
 if (process.argv.length === 4) {
@@ -140,7 +144,12 @@ if (process.argv.length === 4) {
         console.log('One or more differences exists in these two JSON files.');
     }
 } else {
-    console.log('Running test cases.\n\n');
-    test();
-    console.log('Test cases finished!');
+    console.log('Running test cases.');
+    const outcomes = test();
+    console.log(
+        `Test cases finished!\nSuccesses: ${outcomes.reduce(
+            (acc, outcome) => acc + (outcome ? 1 : 0),
+            0,
+        )}\nFailures: ${outcomes.reduce((acc, outcome) => acc + (!outcome ? 1 : 0), 0)}`,
+    );
 }
